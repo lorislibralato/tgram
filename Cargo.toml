@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "client",
+    "parser",
+    "gen",
+    "transport",
+    "mtproto",
+    "raw"
+]
