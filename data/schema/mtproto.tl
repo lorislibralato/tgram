@@ -28,7 +28,7 @@ dh_gen_fail#a69dae02 nonce:int128 server_nonce:int128 new_nonce_hash3:int128 = S
 bind_auth_key_inner#75a3f765 nonce:long temp_auth_key_id:long perm_auth_key_id:long temp_session_id:long expires_at:int
 = BindAuthKeyInner;
 
-//rpc_result#f35c6d01 req_msg_id:long result:string = RpcResult;
+rpc_result#f35c6d01 req_msg_id:long result:string = RpcResult;
 rpc_error#2144ca19 error_code:int error_message:string = RpcError;
 
 rpc_answer_unknown#5e2ad36e = RpcDropAnswer;
@@ -40,14 +40,14 @@ future_salts#ae500895 req_msg_id:long now:int salts:vector<future_salt> = Future
 
 pong#347773c5 msg_id:long ping_id:long = Pong;
 
-//destroy_session_ok#e22045fc session_id:long = DestroySessionRes;
-//destroy_session_none#62d350c9 session_id:long = DestroySessionRes;
+destroy_session_ok#e22045fc session_id:long = DestroySessionRes;
+destroy_session_none#62d350c9 session_id:long = DestroySessionRes;
 
 new_session_created#9ec20908 first_msg_id:long unique_id:long server_salt:long = NewSession;
 
-//msg_container#73f1f8dc messages:vector<%Message> = MessageContainer;
-//message msg_id:long seqno:int bytes:int body:string = Message;
-//msg_copy#e06046b2 orig_message:Message = MessageCopy;
+msg_container#73f1f8dc messages:vector<%Message> = MessageContainer;
+message msg_id:long seqno:int bytes:int body:string = Message;
+msg_copy#e06046b2 orig_message:Message = MessageCopy;
 
 gzip_packed#3072cfa1 packed_data:string = GzipPacked;
 
@@ -79,9 +79,9 @@ set_client_DH_params#f5045f1f nonce:int128 server_nonce:int128 encrypted_data:st
 
 rpc_drop_answer#58e4a740 req_msg_id:long = RpcDropAnswer;
 get_future_salts#b921bd04 num:int = FutureSalts;
-//ping#7abe77ec ping_id:long = Pong;
+ping#7abe77ec ping_id:long = Pong;
 ping_delay_disconnect#f3427b8c ping_id:long disconnect_delay:int = Pong;
-//destroy_session#e7512126 session_id:long = DestroySessionRes;
+destroy_session#e7512126 session_id:long = DestroySessionRes;
 
 http_wait#9299359f max_delay:int wait_after:int max_wait:int = HttpWait;
 
