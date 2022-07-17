@@ -2,8 +2,8 @@ pub mod deserialize;
 pub mod generated;
 pub mod serialize;
 
-// pub use generated::{types, functions};
-pub use deserialize::Deserializable;
+pub use deserialize::{Deserializable, Result};
+pub use generated::{functions, types};
 pub use serialize::Serializable;
 
 pub enum Err {

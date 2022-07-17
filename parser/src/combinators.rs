@@ -74,10 +74,10 @@ fn lc_ident_full(input: &str) -> IResult<&str, IdentFull> {
         opt(preceded(
             ws(char('#')),
             map_res(
-                ws(recognize(count(
-                    verify(anychar, char::is_ascii_hexdigit),
-                    8,
-                ))),
+                ws(recognize(many1_count(verify(
+                    anychar,
+                    char::is_ascii_hexdigit,
+                )))),
                 from_str_radix_16,
             ),
         )),
@@ -363,7 +363,8 @@ mod tests {
         builtin_declaration, combinator_declaration, comments_inner, many0, var_ident, ws,
     };
     use crate::types::{
-        ArgBrack, ArgSingle, BuiltinDecl, CombinatorDecl, IdentNs, OptArg, ResTypeNormal, Term,
+        ArgBrack, ArgSingle, BuiltinDecl, CombinatorDecl, Declaration, IdentNs, OptArg, ResType,
+        ResTypeNormal, Term, ArgCond, ConditionalDef,
     };
 
     #[test]
@@ -489,6 +490,29 @@ mod tests {
                         })],
                     }
                     .into()
+                }
+            ))
+        )
+    }
+
+    #[test]
+    fn test_flag() {
+        assert_eq!(
+            combinator_declaration("webViewMessageSent#c94511c flags:# msg_id:flags.0?InputBotInlineMessageID = WebViewMessageSent;"),
+            Ok((
+                "",
+                CombinatorDecl {
+                    identns: IdentNs {name:"webViewMessageSent", namespace: None}, 
+                    id: Some(211046684),
+                    opt_args: vec![],
+                    args: vec![
+                        ArgCond { ident: "flags", cond: None, excl: false, term: Term::Nat.into() }.into(),
+                        ArgCond { ident: "msg_id", cond: Some(ConditionalDef { ident: "flags", index: Some(0) }), excl: false, term: Term::IdentNs(IdentNs { namespace: None, name: "InputBotInlineMessageID" }) }.into(),
+
+                    ],
+                    res: ResTypeNormal { 
+                        identns: IdentNs { namespace: None, name: "WebViewMessageSent" }, terms: vec![] 
+                    }.into() 
                 }
             ))
         )

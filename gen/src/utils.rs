@@ -5,6 +5,29 @@ pub trait Rustifiable {
     fn path(&self) -> String;
 }
 
+pub fn escape_builtin_kw(ty: &str) -> String {
+    match ty {
+        "final" | "async" | "impl" | "fn" | "pub" | "mut" | "let" | "type" | "loop" | "while" | "for" | "static" => {
+            let mut s = String::from("r#");
+            s.push_str(ty);
+            s
+        },
+        "self" => "_self".to_string(),
+        e => e.to_string()
+    }
+}
+
+pub fn builtin_type(ty: &str) -> Option<&str> {
+    Some(match ty {
+        "int" => "i32",
+        "long" => "i64",
+        "double" => "f64",
+        "string" => "String",
+        "bytes" => "Vec<u8>",
+        _ => return None
+    })
+}
+
 impl<'a> Rustifiable for IdentNs<'a> {
     fn struct_name(&self) -> String {
         enum Case {

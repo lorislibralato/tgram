@@ -190,7 +190,20 @@ impl<'a> From<(Option<&'a str>, &'a str)> for IdentNs<'a> {
 }
 
 impl<'a> CombinatorDecl<'a> {
+    pub fn get_id(&self) -> u32 {
+        match self.id {
+            Some(id) => id,
+            None => self.gen_id(),
+        }
+    }
+
     pub fn gen_id(&self) -> u32 {
         0
+    }
+}
+
+impl<'a> IdentNs<'a> {
+    pub fn is_boxed(&self) -> bool {
+        self.name.chars().next().unwrap().is_ascii_uppercase()
     }
 }

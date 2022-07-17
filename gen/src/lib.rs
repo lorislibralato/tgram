@@ -1,4 +1,5 @@
 pub mod generate;
+pub mod metadata;
 pub mod utils;
 
 #[cfg(test)]
@@ -16,7 +17,7 @@ mod tests {
 
         let schema = schema(&schema_text).unwrap().1;
 
-        let mut output = std::io::stdout().lock();
+        let mut output = std::io::sink();
 
         generate_code(&mut output, schema, 142).unwrap();
     }
@@ -29,7 +30,7 @@ mod tests {
 
         let schema = schema(&schema_text).unwrap().1;
 
-        let mut output = std::io::stdout().lock();
+        let mut output = std::io::sink();
         generate_code(&mut output, schema, 142).unwrap();
     }
 }

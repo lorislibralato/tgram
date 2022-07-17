@@ -1,9 +1,10 @@
 [workspace]
 members = [
-    "client",
-    "parser",
-    "gen",
-    "transport",
-    "mtproto",
-    "raw"
+	"client",
+	"parser",
+	"gen",
+	"transport",
+	"mtproto",
+	"raw",
+	"bin/tl_stats"
 ]
