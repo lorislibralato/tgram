@@ -1,13 +1,13 @@
-pub mod utils;
 pub mod generate;
+pub mod utils;
 
 #[cfg(test)]
 mod tests {
+    use crate::generate::generate_code;
     use parser::combinators::schema;
     use std::fs::File;
     use std::io::Read;
 
-    /*
     #[test]
     fn test_generate_api_scheme() {
         let mut fs = File::open("../data/schema/api.tl").unwrap();
@@ -16,7 +16,9 @@ mod tests {
 
         let schema = schema(&schema_text).unwrap().1;
 
-        let _ = gen(schema);
+        let mut output = std::io::stdout().lock();
+
+        generate_code(&mut output, schema, 142).unwrap();
     }
 
     #[test]
@@ -27,7 +29,7 @@ mod tests {
 
         let schema = schema(&schema_text).unwrap().1;
 
-        let _ = gen(schema);
+        let mut output = std::io::stdout().lock();
+        generate_code(&mut output, schema, 142).unwrap();
     }
-    */
 }

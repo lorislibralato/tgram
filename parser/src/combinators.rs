@@ -64,7 +64,9 @@ fn ident_ns(input: &str) -> IResult<&str, (Option<&str>, &str)> {
     pair(opt(terminated(ws(lc_ident), ws(char('.')))), ws(var_ident))(input)
 }
 
-fn lc_ident_full(input: &str) -> IResult<&str, ((Option<&str>, &str), Option<u32>)> {
+type IdentFull<'a> = ((Option<&'a str>, &'a str), Option<u32>);
+
+fn lc_ident_full(input: &str) -> IResult<&str, IdentFull> {
     let from_str_radix_16 = |h| u32::from_str_radix(h, 16);
 
     pair(
@@ -118,7 +120,7 @@ fn type_term(input: &str) -> IResult<&str, Term> {
         // ident_ns
         ws(ident_ns).map(|ident| Term::IdentNs(ident.into())),
         // ( expr )
-        delimited(ws(char('(')), many1(ws(term)), ws(char('('))).map(|terms| Term::Par(terms)),
+        delimited(ws(char('(')), many1(ws(term)), ws(char('('))).map(Term::Par),
         // nat
         ws(char('#')).map(|_| Term::Nat),
         // %
@@ -129,7 +131,7 @@ fn type_term(input: &str) -> IResult<&str, Term> {
 fn nat_term(input: &str) -> IResult<&str, Term> {
     // digit
     map_res(ws(digit1), |d: &str| d.parse::<u32>())
-        .map(|d| Term::NatConst(d))
+        .map(Term::NatConst)
         .parse(input)
 }
 
@@ -280,7 +282,6 @@ fn builtin_declaration(input: &str) -> IResult<&str, BuiltinDecl> {
         identns: name_ident.into(),
         id,
         res: res_ident.into(),
-        ..Default::default()
     })
     .parse(input)
 }
@@ -291,8 +292,8 @@ fn tl_program(input: &str) -> IResult<&str, Vec<Declaration>> {
             many1(delimited(
                 many0(ws(comments)),
                 alt((
-                    ws(combinator_declaration).map(|d| Declaration::Constr(d)),
-                    ws(builtin_declaration).map(|d| Declaration::Builtin(d)),
+                    ws(combinator_declaration).map(Declaration::Constr),
+                    ws(builtin_declaration).map(Declaration::Builtin),
                 )),
                 many0(ws(comments)),
             )),
@@ -302,8 +303,8 @@ fn tl_program(input: &str) -> IResult<&str, Vec<Declaration>> {
                     many1(delimited(
                         many0(ws(comments)),
                         alt((
-                            ws(combinator_declaration).map(|d| Declaration::Fun(d)),
-                            ws(builtin_declaration).map(|d| Declaration::Builtin(d)),
+                            ws(combinator_declaration).map(Declaration::Fun),
+                            ws(builtin_declaration).map(Declaration::Builtin),
                         )),
                         many0(ws(comments)),
                     )),
@@ -313,8 +314,8 @@ fn tl_program(input: &str) -> IResult<&str, Vec<Declaration>> {
                     many1(delimited(
                         many0(ws(comments)),
                         alt((
-                            ws(combinator_declaration).map(|d| Declaration::Constr(d)),
-                            ws(builtin_declaration).map(|d| Declaration::Builtin(d)),
+                            ws(combinator_declaration).map(Declaration::Constr),
+                            ws(builtin_declaration).map(Declaration::Builtin),
                         )),
                         many0(ws(comments)),
                     )),
@@ -345,9 +346,7 @@ pub fn schema(input: &str) -> IResult<&str, TLSchema> {
         ..Default::default()
     };
 
-    let mut iter = definitions.into_iter();
-
-    while let Some(dec) = iter.next() {
+    for dec in definitions {
         match dec {
             Declaration::Constr(d) => schema.constrs.push(d),
             Declaration::Fun(d) => schema.funcs.push(d),
@@ -364,8 +363,7 @@ mod tests {
         builtin_declaration, combinator_declaration, comments_inner, many0, var_ident, ws,
     };
     use crate::types::{
-        Arg, ArgBrack, ArgCond, ArgPar, ArgSingle, BuiltinDecl, CombinatorDecl, IdentNs, OptArg,
-        ResType, ResTypeAng, ResTypeNormal, Term,
+        ArgBrack, ArgSingle, BuiltinDecl, CombinatorDecl, IdentNs, OptArg, ResTypeNormal, Term,
     };
 
     #[test]
