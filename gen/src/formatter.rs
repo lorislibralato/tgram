@@ -1,19 +1,20 @@
-use parser::types::IdentNs;
+use parser::types::{IdentNs, ResType};
 
 pub trait Rustifiable {
-    fn struct_name(&self) -> String;
-    fn path(&self) -> String;
+    fn rust_name(&self) -> String;
+    fn rust_path(&self) -> String;
 }
 
 pub fn escape_builtin_kw(ty: &str) -> String {
     match ty {
-        "final" | "async" | "impl" | "fn" | "pub" | "mut" | "let" | "type" | "loop" | "while" | "for" | "static" => {
+        "final" | "async" | "impl" | "fn" | "pub" | "mut" | "let" | "type" | "loop" | "while"
+        | "for" | "static" => {
             let mut s = String::from("r#");
             s.push_str(ty);
             s
-        },
+        }
         "self" => "_self".to_string(),
-        e => e.to_string()
+        e => e.to_string(),
     }
 }
 
@@ -24,12 +25,12 @@ pub fn builtin_type(ty: &str) -> Option<&str> {
         "double" => "f64",
         "string" => "String",
         "bytes" => "Vec<u8>",
-        _ => return None
+        _ => return None,
     })
 }
 
 impl<'a> Rustifiable for IdentNs<'a> {
-    fn struct_name(&self) -> String {
+    fn rust_name(&self) -> String {
         enum Case {
             Upper,
             Lower,
@@ -70,10 +71,26 @@ impl<'a> Rustifiable for IdentNs<'a> {
         res
     }
 
-    fn path(&self) -> String {
+    fn rust_path(&self) -> String {
         match self.namespace {
-            Some(n) => format!("{}::{}", n, self.struct_name()),
-            None => self.struct_name(),
+            Some(n) => format!("{}::{}", n, self.rust_name()),
+            None => self.rust_name(),
+        }
+    }
+}
+
+impl<'a> Rustifiable for ResType<'a> {
+    fn rust_name(&self) -> String {
+        match self {
+            ResType::Normal(n) => n.identns.rust_name(),
+            ResType::Ang(a) => a.identns.rust_name(),
+        }
+    }
+
+    fn rust_path(&self) -> String {
+        match self {
+            ResType::Normal(n) => n.identns.rust_path(),
+            ResType::Ang(a) => a.identns.rust_path(),
         }
     }
 }

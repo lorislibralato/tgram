@@ -1,88 +1,19 @@
-use crate::types::{
-    Arg, ArgBrack, ArgCond, ArgPar, ArgSingle, BuiltinDecl, CombinatorDecl, ConditionalDef,
-    Declaration, OptArg, ResType, ResTypeAng, ResTypeNormal, Section, TLSchema, Term, TermAng,
+use crate::{
+    basics::{comments, ident_ns, lc_ident_full, uc_ident_ns, var_ident, ws},
+    types::{
+        Arg, ArgBrack, ArgCond, ArgPar, ArgSingle, BuiltinDecl, CombinatorDecl, ConditionalDef,
+        Declaration, OptArg, ResType, ResTypeAng, ResTypeNormal, Section, TLSchema, Term, TermAng,
+    },
 };
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag},
-    character::complete::{alphanumeric1, anychar, char, digit1, multispace0},
-    combinator::{eof, map_res, opt, recognize, value, verify},
-    error::ParseError,
-    multi::{count, many0, many1, many1_count},
+    bytes::complete::tag,
+    character::complete::{char, digit1},
+    combinator::{eof, map_res, opt, value},
+    multi::{many0, many1},
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
-    AsChar, IResult, InputTakeAtPosition, Parser,
+    IResult, Parser,
 };
-
-fn ws<F, I, O, E>(inner: F) -> impl FnMut(I) -> IResult<I, O, E>
-where
-    F: Parser<I, O, E>,
-    E: ParseError<I>,
-    I: InputTakeAtPosition,
-    <I as InputTakeAtPosition>::Item: AsChar + Clone,
-{
-    delimited(multispace0, inner, multispace0)
-}
-
-fn comments_inner(input: &str) -> IResult<&str, &str> {
-    alt((
-        preceded(tag("//"), is_not("\n\r")),
-        delimited(tag("/*"), is_not("*/"), tag("*/")),
-    ))(input)
-}
-
-fn comments(input: &str) -> IResult<&str, ()> {
-    value((), comments_inner)(input)
-}
-
-fn var_ident(input: &str) -> IResult<&str, &str> {
-    recognize(many1_count(alt((alphanumeric1, tag("_")))))(input)
-}
-
-fn lc_ident(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        verify(anychar, char::is_ascii_lowercase),
-        opt(var_ident),
-    ))(input)
-}
-
-fn uc_ident(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        verify(anychar, char::is_ascii_uppercase),
-        opt(var_ident),
-    ))(input)
-}
-
-fn lc_ident_ns(input: &str) -> IResult<&str, (Option<&str>, &str)> {
-    pair(opt(terminated(lc_ident, char('.'))), lc_ident)(input)
-}
-
-fn uc_ident_ns(input: &str) -> IResult<&str, (Option<&str>, &str)> {
-    pair(opt(terminated(lc_ident, char('.'))), uc_ident)(input)
-}
-
-fn ident_ns(input: &str) -> IResult<&str, (Option<&str>, &str)> {
-    pair(opt(terminated(ws(lc_ident), ws(char('.')))), ws(var_ident))(input)
-}
-
-type IdentFull<'a> = ((Option<&'a str>, &'a str), Option<u32>);
-
-fn lc_ident_full(input: &str) -> IResult<&str, IdentFull> {
-    let from_str_radix_16 = |h| u32::from_str_radix(h, 16);
-
-    pair(
-        ws(lc_ident_ns),
-        opt(preceded(
-            ws(char('#')),
-            map_res(
-                ws(recognize(many1_count(verify(
-                    anychar,
-                    char::is_ascii_hexdigit,
-                )))),
-                from_str_radix_16,
-            ),
-        )),
-    )(input)
-}
 
 fn constr_sep(input: &str) -> IResult<&str, Section> {
     value(
@@ -359,12 +290,13 @@ pub fn schema(input: &str) -> IResult<&str, TLSchema> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        builtin_declaration, combinator_declaration, comments_inner, many0, var_ident, ws,
-    };
-    use crate::types::{
-        ArgBrack, ArgSingle, BuiltinDecl, CombinatorDecl, Declaration, IdentNs, OptArg, ResType,
-        ResTypeNormal, Term, ArgCond, ConditionalDef,
+    use super::{builtin_declaration, combinator_declaration, many0, var_ident, ws};
+    use crate::{
+        basics::comments_inner,
+        types::{
+            ArgBrack, ArgCond, ArgSingle, BuiltinDecl, CombinatorDecl, ConditionalDef, IdentNs,
+            OptArg, ResTypeNormal, Term,
+        },
     };
 
     #[test]
@@ -407,6 +339,46 @@ mod tests {
                         namespace: None,
                         name: "Int"
                     }
+                }
+            ))
+        )
+    }
+
+    #[test]
+    fn test_int128() {
+        assert_eq!(
+            combinator_declaration("int128 4*[ int ] = Int128;"),
+            Ok((
+                "",
+                CombinatorDecl {
+                    identns: IdentNs {
+                        namespace: None,
+                        name: "int128"
+                    },
+                    id: None,
+                    opt_args: vec![],
+                    args: vec![ArgBrack {
+                        ident: None,
+                        mult: Some(4),
+                        args: vec![ArgSingle {
+                            excl: false,
+                            term: Term::IdentNs(IdentNs {
+                                namespace: None,
+                                name: "int"
+                            })
+                            .into()
+                        }
+                        .into()],
+                    }
+                    .into()],
+                    res: ResTypeNormal {
+                        identns: IdentNs {
+                            namespace: None,
+                            name: "Int128"
+                        },
+                        terms: vec![]
+                    }
+                    .into()
                 }
             ))
         )
@@ -502,17 +474,40 @@ mod tests {
             Ok((
                 "",
                 CombinatorDecl {
-                    identns: IdentNs {name:"webViewMessageSent", namespace: None}, 
+                    identns: IdentNs {
+                        name:"webViewMessageSent",
+                        namespace: None
+                    },
                     id: Some(211046684),
                     opt_args: vec![],
                     args: vec![
-                        ArgCond { ident: "flags", cond: None, excl: false, term: Term::Nat.into() }.into(),
-                        ArgCond { ident: "msg_id", cond: Some(ConditionalDef { ident: "flags", index: Some(0) }), excl: false, term: Term::IdentNs(IdentNs { namespace: None, name: "InputBotInlineMessageID" }) }.into(),
+                        ArgCond {
+                            ident: "flags",
+                            cond: None,
+                            excl: false,
+                            term: Term::Nat.into()
+                        }.into(),
+                        ArgCond {
+                            ident: "msg_id",
+                            cond: Some(ConditionalDef {
+                                ident: "flags",
+                                index: Some(0)
+                            }),
+                            excl: false,
+                            term: Term::IdentNs(IdentNs {
+                                namespace: None,
+                                name: "InputBotInlineMessageID"
+                            })
+                        }.into(),
 
                     ],
-                    res: ResTypeNormal { 
-                        identns: IdentNs { namespace: None, name: "WebViewMessageSent" }, terms: vec![] 
-                    }.into() 
+                    res: ResTypeNormal {
+                         identns: IdentNs {
+                            namespace: None,
+                            name: "WebViewMessageSent"
+                        },
+                        terms: vec![]
+                    }.into()
                 }
             ))
         )

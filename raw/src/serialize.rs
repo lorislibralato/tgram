@@ -66,3 +66,9 @@ impl Serializable for Vec<u8> {
         (&self[..]).serialize(buf)
     }
 }
+
+impl<T: Serializable> Serializable for Vec<T> {
+    fn serialize(&self, buf: Buf) {
+        self.iter().for_each(|t| t.serialize(buf))
+    }
+}

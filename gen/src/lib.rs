@@ -1,6 +1,8 @@
+pub mod enums;
+pub mod formatter;
 pub mod generate;
 pub mod metadata;
-pub mod utils;
+pub mod structs;
 
 #[cfg(test)]
 mod tests {
@@ -15,7 +17,8 @@ mod tests {
         let mut schema_text = String::new();
         fs.read_to_string(&mut schema_text).unwrap();
 
-        let schema = schema(&schema_text).unwrap().1;
+        let mut schema = schema(&schema_text).unwrap().1;
+        schema.calculate_ids();
 
         let mut output = std::io::sink();
 
@@ -28,7 +31,8 @@ mod tests {
         let mut schema_text = String::new();
         fs.read_to_string(&mut schema_text).unwrap();
 
-        let schema = schema(&schema_text).unwrap().1;
+        let mut schema = schema(&schema_text).unwrap().1;
+        schema.calculate_ids();
 
         let mut output = std::io::sink();
         generate_code(&mut output, schema, 142).unwrap();

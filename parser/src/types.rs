@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct TLSchema<'a> {
     pub funcs: Vec<CombinatorDecl<'a>>,
@@ -19,6 +21,12 @@ pub struct CombinatorDecl<'a> {
     pub opt_args: Vec<OptArg<'a>>,
     pub args: Vec<Arg<'a>>,
     pub res: ResType<'a>,
+}
+
+impl<'a> Hash for CombinatorDecl<'a> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -103,7 +111,7 @@ pub struct ConditionalDef<'a> {
     pub index: Option<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ResType<'a> {
     Normal(ResTypeNormal<'a>),
     Ang(ResTypeAng<'a>),
@@ -115,7 +123,7 @@ impl<'a> From<ResTypeAng<'a>> for ResType<'a> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct ResTypeNormal<'a> {
     pub identns: IdentNs<'a>,
     pub terms: Vec<Term<'a>>,
@@ -127,20 +135,20 @@ impl<'a> From<ResTypeNormal<'a>> for ResType<'a> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct ResTypeAng<'a> {
     pub identns: IdentNs<'a>,
     pub term: Term<'a>,
     pub terms: Vec<Term<'a>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct IdentNs<'a> {
     pub namespace: Option<&'a str>,
     pub name: &'a str,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub enum Term<'a> {
     Par(Vec<Term<'a>>),
     IdentNs(IdentNs<'a>),
@@ -151,7 +159,7 @@ pub enum Term<'a> {
     Ang(TermAng<'a>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct TermAng<'a> {
     pub identns: IdentNs<'a>,
     pub term: Box<Term<'a>>,
@@ -205,5 +213,29 @@ impl<'a> CombinatorDecl<'a> {
 impl<'a> IdentNs<'a> {
     pub fn is_boxed(&self) -> bool {
         self.name.chars().next().unwrap().is_ascii_uppercase()
+    }
+}
+
+impl<'a> TLSchema<'a> {
+    pub fn extend(&mut self, other: Self) {
+        self.builtin.extend(other.builtin);
+        self.funcs.extend(other.funcs);
+        self.constrs.extend(other.constrs);
+    }
+
+    pub fn calculate_ids(&mut self) {
+        for decl in &mut self.constrs {
+            match decl.id {
+                Some(_) => (),
+                None => decl.id = Some(decl.gen_id()),
+            }
+        }
+
+        for decl in &mut self.funcs {
+            match decl.id {
+                Some(_) => (),
+                None => decl.id = Some(decl.gen_id()),
+            }
+        }
     }
 }

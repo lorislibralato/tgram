@@ -3,7 +3,7 @@ pub mod generated;
 pub mod serialize;
 
 pub use deserialize::{Deserializable, Result};
-pub use generated::{functions, types};
+pub use generated::{enums, functions, types};
 pub use serialize::Serializable;
 
 pub enum Err {
@@ -30,7 +30,7 @@ impl From<std::str::Utf8Error> for Err {
 }
 
 pub trait Identificable {
-    fn id(&self) -> u32;
+    const ID: u32;
 }
 
 pub trait Request: Serializable {

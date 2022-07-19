@@ -1,3 +1,4 @@
+pub mod basics;
 pub mod combinators;
 pub mod errors;
 pub mod types;
@@ -14,8 +15,8 @@ mod tests {
         let mut schema_text = String::new();
         fs.read_to_string(&mut schema_text).unwrap();
 
-        let schema = schema(&schema_text).unwrap();
-        _ = schema;
+        let mut schema = schema(&schema_text).unwrap().1;
+        schema.calculate_ids();
     }
 
     #[test]
@@ -24,7 +25,7 @@ mod tests {
         let mut schema_text = String::new();
         fs.read_to_string(&mut schema_text).unwrap();
 
-        let schema = schema(&schema_text).unwrap();
-        _ = schema;
+        let mut schema = schema(&schema_text).unwrap().1;
+        schema.calculate_ids();
     }
 }
