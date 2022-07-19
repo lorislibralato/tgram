@@ -25,6 +25,10 @@ pub fn builtin_type(ty: &str) -> Option<&str> {
         "double" => "f64",
         "string" => "String",
         "bytes" => "Vec<u8>",
+        "int128" => "crate::Int128",
+        "int256" => "crate::Int256",
+        "vector" => "crate::RawVec",
+        "Vector" => "Vec",
         _ => return None,
     })
 }

@@ -28,6 +28,33 @@ impl Serializable for f64 {
     }
 }
 
+impl Serializable for [u8; 16] {
+    fn serialize(&self, buf: Buf) {
+        buf.extend(self)
+    }
+}
+
+impl Serializable for [u8; 32] {
+    fn serialize(&self, buf: Buf) {
+        buf.extend(self)
+    }
+}
+
+impl<T: Serializable> Serializable for Vec<T> {
+    fn serialize(&self, buf: Buf) {
+        0x1cb5c415u32.serialize(buf);
+        (self.len() as i32).serialize(buf);
+        self.iter().for_each(|e| e.serialize(buf))
+    }
+}
+
+impl<T: Serializable> Serializable for crate::RawVec<T> {
+    fn serialize(&self, buf: Buf) {
+        (self.0.len() as i32).serialize(buf);
+        self.0.iter().for_each(|e| e.serialize(buf))
+    }
+}
+
 impl Serializable for &[u8] {
     fn serialize(&self, buf: Buf) {
         let len = if self.len() <= 253 {
@@ -64,11 +91,5 @@ impl Serializable for &str {
 impl Serializable for Vec<u8> {
     fn serialize(&self, buf: Buf) {
         (&self[..]).serialize(buf)
-    }
-}
-
-impl<T: Serializable> Serializable for Vec<T> {
-    fn serialize(&self, buf: Buf) {
-        self.iter().for_each(|t| t.serialize(buf))
     }
 }

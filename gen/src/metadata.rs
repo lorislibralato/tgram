@@ -6,7 +6,8 @@ pub struct Metadata<'a> {
     pub types_ns: HashMap<Option<&'a str>, HashSet<&'a CombinatorDecl<'a>>>,
     pub funcs_ns: HashMap<Option<&'a str>, HashSet<&'a CombinatorDecl<'a>>>,
 
-    pub types_group_ns: HashMap<Option<&'a str>, HashMap<ResType<'a>, Vec<&'a CombinatorDecl<'a>>>>,
+    pub types_group_ns:
+        HashMap<Option<&'a str>, HashMap<ResType<'a>, HashSet<&'a CombinatorDecl<'a>>>>,
 }
 
 impl<'a> Metadata<'a> {
@@ -23,7 +24,7 @@ impl<'a> Metadata<'a> {
         for (ns, decls) in &meta.types_ns {
             let entry = meta.types_group_ns.entry(*ns).or_default();
             for decl in decls {
-                entry.entry(decl.res.clone()).or_default().push(decl);
+                entry.entry(decl.res.clone()).or_default().insert(decl);
             }
         }
 

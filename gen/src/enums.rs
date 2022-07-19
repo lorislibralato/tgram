@@ -1,11 +1,9 @@
-use crate::{
-    formatter::{Rustifiable},
-    metadata::Metadata,
-    structs::{get_generic_arg, get_generic_impl, get_generic_name, get_struct_field_type},
+use crate::{formatter::Rustifiable, metadata::Metadata, structs::get_struct_field_type};
+use parser::types::{Arg, CombinatorDecl, IdentNs, ResType};
+use std::{
+    collections::HashSet,
+    io::{self, Write},
 };
-use itertools::Itertools;
-use parser::types::{Arg, CombinatorDecl, IdentNs, OptArg, ResType};
-use std::io::{self, Write};
 
 fn get_enum_variant_path(identns: &IdentNs) -> String {
     format!(
@@ -15,38 +13,24 @@ fn get_enum_variant_path(identns: &IdentNs) -> String {
     )
 }
 
-fn get_enum_variant_generics(args: &[OptArg]) -> String {
-    let generics = get_generic_arg(args);
-
-    if generics.len() > 0 {
-        format!("<{}>", generics.join(","))
-    } else {
-        "".to_string()
-    }
-}
-
 fn is_recursive_enum_variant(enum_name: &str, args: &[Arg]) -> bool {
     args.iter()
-        .map(|arg| get_struct_field_type(arg, &vec![]))
+        .map(get_struct_field_type)
         .any(|a| a == format!("crate::enums::{}", enum_name))
 }
 
 fn write_enum<W: Write>(
     f: &mut W,
     res: &ResType,
-    decls: &[&CombinatorDecl],
+    decls: &HashSet<&CombinatorDecl>,
     indent: &str,
 ) -> io::Result<()> {
     let enum_name = res.rust_name();
-    let generics = get_generic_names(decls);
-    let generic_name = get_generic_name(&generics);
 
-    writeln!(f, "{indent}pub enum {enum_name}{generic_name} {{")?;
+    writeln!(f, "{indent}pub enum {enum_name} {{")?;
 
     for decl in decls {
         let mut ty = get_enum_variant_path(&decl.identns);
-
-        ty.push_str(&get_enum_variant_generics(&decl.opt_args));
 
         if is_recursive_enum_variant(&enum_name, &decl.args) {
             ty = format!("Box<{}>", ty);
@@ -62,18 +46,12 @@ fn write_enum<W: Write>(
 fn write_enum_ser<W: Write>(
     f: &mut W,
     res: &ResType,
-    decls: &[&CombinatorDecl],
+    decls: &HashSet<&CombinatorDecl>,
     indent: &str,
 ) -> io::Result<()> {
     let enum_name = res.rust_name();
-    let generics = get_generic_names(decls);
-    let generic_name = get_generic_name(&generics);
-    let generics_impl = get_generic_impl(&generics, "crate::Serializable");
 
-    writeln!(
-        f,
-        "{indent}impl{generics_impl} crate::Serializable for {enum_name}{generic_name} {{"
-    )?;
+    writeln!(f, "{indent}impl crate::Serializable for {enum_name} {{")?;
     writeln!(
         f,
         "{indent}    fn serialize(&self, buf: crate::serialize::Buf) {{"
@@ -83,22 +61,24 @@ fn write_enum_ser<W: Write>(
     writeln!(f, "{indent}        match self {{")?;
     for decl in decls {
         let variant_name = decl.identns.rust_name();
-    
-        let mut variant_path = get_enum_variant_path(&decl.identns);
-        let variant_generic = get_enum_variant_generics(&decl.opt_args);
-        if  !variant_generic.is_empty() {
-            variant_path = format!("{variant_path}::{variant_generic}")
-        }
-        
-        
+        let variant_path = get_enum_variant_path(&decl.identns);
 
-        writeln!(f, "{indent}            Self::{variant_name}(x) => {{")?;
-        writeln!(f, "{indent}                {variant_path}::ID.serialize(buf);")?;
-        writeln!(f, "{indent}                x.serialize(buf);")?;
+        let anon_name = if !decl.args.is_empty() { "x" } else { "_" };
+
+        writeln!(
+            f,
+            "{indent}            Self::{variant_name}({anon_name}) => {{"
+        )?;
+        writeln!(
+            f,
+            "{indent}                {variant_path}::ID.serialize(buf);"
+        )?;
+        if !decl.args.is_empty() {
+            writeln!(f, "{indent}                {anon_name}.serialize(buf);")?;
+        }
         writeln!(f, "{indent}            }}")?;
     }
     writeln!(f, "{indent}        }}")?;
-
 
     writeln!(f, "{indent}    }}")?;
     writeln!(f, "{indent}}}")?;
@@ -108,18 +88,12 @@ fn write_enum_ser<W: Write>(
 fn write_enum_des<W: Write>(
     f: &mut W,
     res: &ResType,
-    decls: &[&CombinatorDecl],
+    decls: &HashSet<&CombinatorDecl>,
     indent: &str,
 ) -> io::Result<()> {
     let enum_name = res.rust_name();
-    let generics = get_generic_names(decls);
-    let generic_name = get_generic_name(&generics);
-    let generics_des = get_generic_impl(&generics, "crate::Deserializable");
 
-    writeln!(
-        f,
-        "{indent}impl{generics_des} crate::Deserializable for {enum_name}{generic_name} {{"
-    )?;
+    writeln!(f, "{indent}impl crate::Deserializable for {enum_name} {{")?;
     writeln!(
         f,
         "{indent}    fn deserialize(buf: crate::deserialize::Buf) -> crate::Result<Self> {{"
@@ -127,19 +101,6 @@ fn write_enum_des<W: Write>(
     writeln!(f, "{indent}    }}")?;
     writeln!(f, "{indent}}}")?;
     Ok(())
-}
-
-fn get_generic_names(decls: &[&CombinatorDecl]) -> Vec<String> {
-    decls
-        .iter()
-        .map(|decl| get_generic_arg(&decl.opt_args))
-        .fold(Vec::<String>::new(), |mut vec, v| {
-            vec.extend(v);
-            vec
-        })
-        .into_iter()
-        .unique()
-        .collect::<Vec<String>>()
 }
 
 pub fn write_enums<W: Write>(f: &mut W, metadata: &Metadata) -> io::Result<()> {
@@ -153,8 +114,15 @@ pub fn write_enums<W: Write>(f: &mut W, metadata: &Metadata) -> io::Result<()> {
         };
 
         for (res_ty, decls) in groups {
+            if let ResType::Normal(n) = res_ty {
+                match n.identns.name {
+                    "Int128" | "Int256" | "Vector" => continue,
+                    _ => (),
+                }
+            }
+            writeln!(f, "{indent}#[derive(Debug, Clone, PartialEq)]")?;
             write_enum(f, res_ty, decls, indent)?;
-            // write_enum_des(f, decls, indent)?;
+            //write_enum_des(f, decls, indent)?;
             write_enum_ser(f, res_ty, decls, indent)?;
         }
 

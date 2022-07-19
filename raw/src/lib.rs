@@ -36,3 +36,8 @@ pub trait Identificable {
 pub trait Request: Serializable {
     type Response: Deserializable;
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RawVec<T>(Vec<T>);
+pub type Int128 = [u8; 16];
+pub type Int256 = [u8; 32];
